@@ -1,5 +1,29 @@
 import Ember from 'ember';
 
+/******************************************************************************
+ *                                                                            *
+ * For faster processing, this helper does NOT use jQuery. Any HTML related   *
+ * operations are made with native functions so that it does it as fast as    *
+ * possible.                                                                  *
+ *                                                                            *
+ *****************************************************************************/
+
+/**
+ * CSS class name to be used on img nodes which are errors
+ * @type {String}
+ */
+var ERROR_CLASS = '-eic-error';
+/**
+ * CSS class name to be used on img nodes which are successfully loaded
+ * @type {String}
+ */
+var SUCCESS_CLASS = '-eic-success';
+/**
+ * CSS class name to be used on img nodes which are loading
+ * @type {String}
+ */
+var LOADING_CLASS = '-eic-loading';
+
 /**
  * Holds the image cache
  * @type Object
@@ -16,6 +40,7 @@ var QUEUE = [];
  * Flush the image cache
  */
 function flush() {
+  Ember.debug('[img-cache] flushing the cache');
   CACHE = Object.create(null);
 }
 
@@ -26,6 +51,7 @@ function flush() {
  * @param {Boolean} resetUuid
  */
 function flushQueue(resetUuid) {
+  Ember.debug('[img-cache] flushing the queue');
   QUEUE.splice(0, QUEUE.length);
   if (resetUuid) {
     uuid = 0;
@@ -67,6 +93,56 @@ function escapeAttr(str) {
 }
 
 /**
+ * Adds a css class on the given node
+ *
+ * @param {HTMLImageElement} node
+ * @param {String} className
+ */
+function addClass(node, className) {
+  node.className = (node.className || '').split(/\s+/g).without(className).concat([className]).join(' ');
+}
+
+/**
+ * Removes a css class on the given node
+ *
+ * @param {HTMLImageElement} node
+ * @param {String} className
+ */
+function removeClass(node, className) {
+  node.className = (node.className || '').split(/\s+/g).without(className).join(' ');
+}
+
+/**
+ * Listen for an HTML event once
+ *
+ * @param {HTMLElement} node
+ * @param {String} event
+ * @param {Function} handler
+ */
+function listenOnce(node, event, handler) {
+  function wrapper() {
+    if (node.removeEventListener) {
+      node.removeEventListener(event, wrapper, true);
+    }
+    else if (node.detachEvent) {
+      node.detachEvent('on' + event, wrapper);
+    }
+    handler.apply(this, arguments);
+  }
+
+  if (node.addEventListener) {
+    node.addEventListener(event, wrapper, false);
+  }
+  else if (node.attachEvent) {
+    node.attachEvent('on' + event, wrapper);
+  }
+  else {
+    return false;
+  }
+  return true;
+}
+
+/**
  * Get or creates a cache entry, incrementing the `hit` property if necessary
  *
  * @param {String} src
@@ -78,6 +154,7 @@ function cacheEntry(src, updateHit) {
   if (entry) {
     if (updateHit) {
       entry.hit++;
+      //Ember.debug('[img-cache] cache hit for %@'.fmt(src));
     }
   }
   else {
@@ -87,7 +164,15 @@ function cacheEntry(src, updateHit) {
     entry.since = Date.now();
     entry.node = document.createElement('img');
     entry.node.src = src;
+    listenOnce(entry.node, 'error', function () {
+      entry.node.removeAttribute('src');
+      entry.error = true;
+    });
+    listenOnce(entry.node, 'load', function () {
+      entry.error = false;
+    });
     CACHE[src] = entry;
+    //Ember.debug('[img-cache] created and cached new img node for %@'.fmt(src));
   }
   return entry;
 }
@@ -101,9 +186,10 @@ function cacheEntry(src, updateHit) {
  * @returns {String}
  */
 function serializeAttributes(attributes, includeId) {
-  var buffer = '';
+  var buffer = '', name;
   for (var k in attributes) {
-    if (attributes.hasOwnProperty(k) && k !== 'src' && (includeId || k !== 'id')) {
+    name = k.toLowerCase();
+    if (attributes.hasOwnProperty(k) && name !== 'src' && name !== 'boundoptions' && (includeId || name !== 'id')) {
       buffer += ' ' + k + '="' + escapeAttr(attributes[k]) + '"';
     }
   }
@@ -169,6 +255,14 @@ function enqueue(src, attributes) {
  */
 function processQueue() {
   var id, originalId, img, entry, newImg, src;
+
+  function makeAddClass(node, className) {
+    return function () {
+      removeClass(node, LOADING_CLASS);
+      addClass(node, className);
+    };
+  }
+
   while (QUEUE.length) {
     src = QUEUE.pop();
     originalId = QUEUE.pop();
@@ -183,7 +277,16 @@ function processQueue() {
         newImg.id = originalId;
       }
       img.parentNode.replaceChild(newImg, img);
+      if (entry.error === undefined) {
+        addClass(newImg, LOADING_CLASS);
+        listenOnce(newImg, 'error', makeAddClass(newImg, ERROR_CLASS));
+        listenOnce(newImg, 'load', makeAddClass(newImg, SUCCESS_CLASS));
+      }
+      else {
+        addClass(newImg, entry.error ? ERROR_CLASS : SUCCESS_CLASS);
+      }
       img = null;
+      //Ember.debug('[img-cache] replaced placeholder with clone from cache for %@'.fmt(src));
     }
   }
 }
@@ -207,4 +310,4 @@ function img(src, options) {
 }
 
 export default Ember.Handlebars.makeBoundHelper(img);
-export { img, processQueue, escapeAttr, flushQueue, flush, QUEUE, CACHE };
+export { img, processQueue, escapeAttr, flushQueue, flush, QUEUE, CACHE, ERROR_CLASS, SUCCESS_CLASS };

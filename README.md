@@ -5,6 +5,11 @@ an `{{img}}` Handlebars helper that will clone images and keep a cache of the no
 clone any time later that the application needs that image again, resulting in traffic cut-down
 as the browser does not try to download the image again then.
 
+As well as caching images, it allow you to have different styles for each `loading`/`success`/`error`
+state of an image. Any loading image will be added the `-eic-loading` css class. Once loaded, this
+class is removed and `-eic-success` class is added. If it couldn't load the image, the `-eic-error`
+class is added instead. **Notice the prefixing dash (`-`)**
+
 
 ## Installation
 
@@ -24,12 +29,11 @@ as the browser does not try to download the image again then.
     
 ## How it works
 
-1. The first time you call `{{img}}` with a given `src`, if that `src` isn't falsy and isn't starting
-with `data:` or `file:`, the image will be injected into the DOM normally, but queued for caching.
-2. Once in the `afterRender` Ember's queue, that `<img>` node will be cloned and saved into the cache
-3. Later when you use `{{img}}` again with that same `src`, it'll insert a placeholder `<img>` with
-no `src` attribute, and queue it for replacement.
-4. Once in the `afterRender` Ember's queue, that placeholder `<img>` node will be replaced with a clone
+1. When you call `{{img}}` with a given `src`, if that `src` isn't falsy and isn't starting
+with `data:` or `file:`, a new template node will be created in the cache if there isn't already.
+A placeholder `<img>` tag with all same attributes except an empty `src` will be inserted into the DOM.
+
+2. Once in the `afterRender` Ember's queue, that placeholder `<img>` node will be replaced with a clone
 of the cached `<img>`, taking care of copying attributes. **That way the browser will NOT re-download
 the image, while if it parses it in some HTML it'd re-download that image.**
 
