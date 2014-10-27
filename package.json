@@ -1,6 +1,6 @@
 {
   "name": "ember-img-cache",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "directories": {
     "doc": "doc",
     "test": "tests"
@@ -29,7 +29,10 @@
     "glob": "^4.0.5"
   },
   "keywords": [
-    "ember-addon", "img", "cache", "image"
+    "ember-addon",
+    "img",
+    "cache",
+    "image"
   ],
   "ember-addon": {
     "configPath": "tests/dummy/config"
