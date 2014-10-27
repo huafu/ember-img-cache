@@ -1,5 +1,6 @@
 import {
-  NAMESPACE, CACHE, QUEUE, flush, flushQueue, processQueue, img, escapeAttr
+  NAMESPACE, CACHE, QUEUE, LOADING_CLASS, ERROR_CLASS, SUCCESS_CLASS,
+  flush, flushQueue, processQueue, img, escapeAttr
   } from 'ember-img-cache/helpers/img';
 import Ember from 'ember';
 
@@ -43,13 +44,16 @@ function assertInCache(src, nb) {
 function assertNotInCache(src, msg) {
   ok(!CACHE[src], msg || 'there should not be a cache entry for `' + src + '`');
 }
-function imgTag(src, attr, id) {
+function imgTag(src, attr, id, cssClass) {
   var attrs = '';
   for (var k in attr || {}) {
     attrs += ' ' + k.toLowerCase() + '="' + escapeAttr(attr[k]) + '"';
   }
   if (id) {
     attrs += ' id="' + NAMESPACE + id + '"';
+  }
+  if (cssClass) {
+    attrs += ' class="' + cssClass + '"';
   }
   return '<img' + (src ? ' src="' + escapeAttr(src) + '"' : '') + attrs + '>';
 }
@@ -79,7 +83,7 @@ test('it renders a placeholder when the image is in cache and replaces it with a
   assertInCache(SRC, 2);
   strictEqual(
     getHtml(),
-    imgTag(SRC, {alt: 'test'}) + imgTag(SRC, {title: 'test'}),
+    imgTag(SRC, {alt: 'test'}, null, LOADING_CLASS) + imgTag(SRC, {title: 'test'}, null, LOADING_CLASS),
     'the html should now contain original source without `id`'
   );
 });
@@ -111,13 +115,17 @@ test('it keeps the id property if one defined', function () {
     appendImg(SRC, {id: 'test3'});
     strictEqual(
       getHtml(),
-      imgTag(SRC_DATA, {id: 'test1'}) + imgTag(SRC_LOCAL, {id: 'test2'}) + imgTag(null, null, 1),
+      imgTag(SRC_DATA, {id: 'test1'}) +
+      imgTag(SRC_LOCAL, {id: 'test2'}) +
+      imgTag(null, null, 1),
       'the html should contain images with correct `id`'
     );
   });
   strictEqual(
     getHtml(),
-    imgTag(SRC_DATA, {id: 'test1'}) + imgTag(SRC_LOCAL, {id: 'test2'}) + imgTag(SRC, {id: 'test3'}),
+    imgTag(SRC_DATA, {id: 'test1'}) +
+    imgTag(SRC_LOCAL, {id: 'test2'}) +
+    imgTag(SRC, {id: 'test3'}, null, LOADING_CLASS),
     'the html should now contain images with replaced `id`'
   );
 });
@@ -130,13 +138,16 @@ test('it keeps user-defined attributes', function () {
     appendImg(SRC, {'dummy': 'dummy'});
     strictEqual(
       getHtml(),
-      imgTag(SRC_DATA, {'data-one': 'one'}) + imgTag(SRC_LOCAL, {'randomAttr': 'random'}) + imgTag(null, {'dummy': 'dummy'}, 1),
+      imgTag(SRC_DATA, {'data-one': 'one'}) +
+      imgTag(SRC_LOCAL, {'randomAttr': 'random'}) +
+      imgTag(null, {'dummy': 'dummy'}, 1),
       'the html should contain images with correct attributes'
     );
   });
   strictEqual(
     getHtml(),
-    imgTag(SRC_DATA, {'data-one': 'one'}) + imgTag(SRC_LOCAL, {'randomAttr': 'random'}) + imgTag(SRC, {'dummy': 'dummy'}),
+    imgTag(SRC_DATA, {'data-one': 'one'}) + imgTag(SRC_LOCAL, {'randomAttr': 'random'}) +
+    imgTag(SRC, {'dummy': 'dummy'}, null, LOADING_CLASS),
     'the html should still contain images with correct attributes'
   );
 });

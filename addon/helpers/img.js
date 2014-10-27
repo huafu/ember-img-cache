@@ -99,7 +99,7 @@ function escapeAttr(str) {
  * @param {String} className
  */
 function addClass(node, className) {
-  node.className = (node.className || '').split(/\s+/g).without(className).concat([className]).join(' ');
+  node.className = (node.className || '').split(/\s+/g).without(className).concat([className]).join(' ').trim();
 }
 
 /**
@@ -109,7 +109,7 @@ function addClass(node, className) {
  * @param {String} className
  */
 function removeClass(node, className) {
-  node.className = (node.className || '').split(/\s+/g).without(className).join(' ');
+  node.className = (node.className || '').split(/\s+/g).without(className).join(' ').trim();
 }
 
 /**
@@ -310,4 +310,7 @@ function img(src, options) {
 }
 
 export default Ember.Handlebars.makeBoundHelper(img);
-export { img, processQueue, escapeAttr, flushQueue, flush, QUEUE, CACHE, ERROR_CLASS, SUCCESS_CLASS };
+export {
+  img, processQueue, escapeAttr, flushQueue, flush,
+  QUEUE, CACHE, ERROR_CLASS, SUCCESS_CLASS, LOADING_CLASS
+  };
