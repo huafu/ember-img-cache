@@ -5,10 +5,16 @@ import config from './config/environment';
 
 Ember.MODEL_FACTORY_INJECTIONS = true;
 
+
 var App = Ember.Application.extend({
   modulePrefix: config.modulePrefix,
   podModulePrefix: config.podModulePrefix,
   Resolver: Resolver
+});
+
+window.IMG = Ember.Object.create({
+  imgLoad: 0,
+  imgError: 0
 });
 
 loadInitializers(App, config.modulePrefix);
