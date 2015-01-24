@@ -1,4 +1,6 @@
 import Ember from 'ember';
+import Rule from '../ember-img-cache/rule';
+import ENV from '../config/environment';
 
 var ImgManagerService = Ember.Object.extend(Ember.Evented, {
   /**
@@ -6,31 +8,31 @@ var ImgManagerService = Ember.Object.extend(Ember.Evented, {
    * @property loadingClass
    * @type String
    */
-  loadingClass: '-eic-loading',
+  loadingClass:        '-eic-loading',
   /**
    * Class to be ued on images which are successfully loaded
    * @property successClass
    * @type String
    */
-  successClass: '-eic-success',
+  successClass:        '-eic-success',
   /**
    * Class to be ued on images which failed loading
    * @property errorClass
    * @type String
    */
-  errorClass: '-eic-error',
+  errorClass:          '-eic-error',
   /**
    * Number of cache total hits
    * @property hits
    * @type Number
    */
-  hits: Ember.computed.sum('_cacheEntries.@each.hits'),
+  hits:                Ember.computed.sum('_cacheEntries.@each.hits'),
   /**
    * All img cache entries which are in error state
    * @property errorCacheEntries
    * @type Array
    */
-  errorCacheEntries: Ember.computed.filterBy('_cacheEntries', 'isError', true),
+  errorCacheEntries:   Ember.computed.filterBy('_cacheEntries', 'isError', true),
   /**
    * All img cache entries which are in loading state
    * @property loadingCacheEntries
@@ -48,14 +50,14 @@ var ImgManagerService = Ember.Object.extend(Ember.Evented, {
    * @property allCacheEntries
    * @type Array
    */
-  allCacheEntries: Ember.computed.filterBy('_cacheEntries', '__dummy__', undefined),
+  allCacheEntries:     Ember.computed.filterBy('_cacheEntries', '__dummy__', undefined),
   /**
    * Our internal cache entries index
    * @property _cacheEntriesIndex
    * @type Object
    * @private
    */
-  _cacheEntriesIndex: function () {
+  _cacheEntriesIndex:  function () {
     return Object.create(null);
   }.property().readOnly(),
 
@@ -84,6 +86,55 @@ var ImgManagerService = Ember.Object.extend(Ember.Evented, {
   maxTries: 1,
 
   /**
+   * Schedule a method call to retry to load the cache entry's image with given src
+   *
+   * @method scheduleLoadRetry
+   * @param {string} src
+   * @param {Object} [target=null]
+   * @param {string|Function} method
+   */
+  scheduleLoadRetry: function (src, target, method) {
+    var rule;
+    if (arguments.length < 3) {
+      method = target;
+      target = null;
+    }
+    rule = this.ruleFor(src);
+    if (rule) {
+      rule.pushReadyHandler(Ember.run.bind(target, method));
+    }
+    else {
+      Ember.run.next(target, method);
+    }
+  },
+
+  /**
+   * Rules
+   * @property rules
+   * @type {Array.<Rule>}
+   */
+  rules: Ember.computed(function () {
+    var rules = Ember.getWithDefault(ENV, 'imgCache.rules', []);
+    return Ember.A(Ember.EnumerableUtils.map(rules, function (ruleConfig) {
+      return new Rule(ruleConfig);
+    }));
+  }).readOnly(),
+
+  /**
+   * Get the first rule corresponding to the given src
+   *
+   * @method ruleFor
+   * @param {string} src
+   * @return {Rule}
+   */
+  ruleFor: function (src) {
+    return this.get('rules').find(function(rule){
+      return rule.match(src);
+    });
+  },
+
+
+  /**
    * Volatile property to get a new ID
    * @property newGeneratedId
    * @type String
@@ -105,7 +156,7 @@ var ImgManagerService = Ember.Object.extend(Ember.Evented, {
       entry;
     if (src) {
       if (!(entry = index[src])) {
-        entry = this.container.lookupFactory('cache-entry:ember-img-cache/core/img-cache-entry').create({src: src});
+        entry = this.container.lookupFactory('cache-entry:img-cache-entry').create({src: src});
         index[src] = entry;
         Ember.run.next(entries, 'pushObject', entry);
       }
@@ -161,6 +212,29 @@ var ImgManagerService = Ember.Object.extend(Ember.Evented, {
     var entry = this.cacheEntryFor(src);
     if (entry) {
       return entry.placeholderFor(attributes);
+    }
+  },
+
+  /**
+   * Flushes the cache
+   *
+   * @method flushCache
+   */
+  flushCache: function () {
+    this.get('_cacheEntries').clear();
+    this.notifyPropertyChange('_cacheEntriesIndex');
+  },
+
+  /**
+   * Flush the processing queue, optionally resenting the id generator
+   *
+   * @method flushQueue
+   * @param {Boolean} [resetIdGenerator=false]
+   */
+  flushQueue: function (resetIdGenerator) {
+    this.get('queue').clear();
+    if (resetIdGenerator) {
+      this.set('lastGeneratedId', 0);
     }
   }
 });

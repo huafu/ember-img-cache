@@ -1,16 +1,22 @@
-import {
-  NAMESPACE, CACHE, QUEUE, LOADING_CLASS, ERROR_CLASS, SUCCESS_CLASS,
-  flush, flushQueue, processQueue, img, escapeAttr
-  } from 'ember-img-cache/helpers/img';
+import '../helpers/helpers';
+import startApp from '../helpers/start-app';
 import Ember from 'ember';
+import helpers from '../../app/ember-img-cache/helpers';
+
+var App, view, manager;
 
 module('ImgHelper', {
-  //setup: function () {
-  //
-  //},
+  setup:    function () {
+    App = startApp();
+    visit('/');
+    andThen(function () {
+      manager = lookup('service:img-manager');
+    });
+  },
   teardown: function () {
-    flush();
-    flushQueue(true);
+    manager = null;
+    Ember.run(view, 'destroy');
+    Ember.run(App, 'destroy');
     $('#qunit-fixture').html('');
   }
 });
@@ -24,38 +30,46 @@ var SRC = 'assets/test.png';
 var SRC_DATA = 'data:image/png;dummy';
 var SRC_LOCAL = 'file:///dummy';
 
-function appendImg(src, attributes) {
-  var html = img(src, {hash: attributes}).toString();
-  Ember.$('#qunit-fixture').append(html);
-  return html;
+function appendImg(code, viewProperties) {
+  var $el = Ember.$('#qunit-fixture');
+  view = Ember.View.extend({
+    container: App.__container__,
+    template: Ember.Handlebars.compile(code)
+  }).create(viewProperties || {});
+  view.appendTo($el);
+  Ember.run.sync();
+  return getHtml();
 }
 function getHtml() {
-  return Ember.$('#qunit-fixture').html();
+  return view.$().html();
 }
 function assertQueueLength(itemCount, msg) {
-  strictEqual(QUEUE.length, itemCount * 3, msg || 'there should be ' + itemCount + ' item(s) in the queue');
+  strictEqual(manager.get('queue.length'), itemCount, msg || 'there should be ' + itemCount + ' item(s) in the queue');
+}
+function cacheEntry(src){
+  return manager.get('_cacheEntriesIndex')[src];
 }
 function assertInCache(src, nb) {
-  ok(CACHE[src] && CACHE[src].node, 'there should be a cache entry for `' + src + '`');
+  ok(cacheEntry(src), 'there should be a cache entry for `' + src + '`');
   if (arguments.length > 1) {
-    strictEqual(CACHE[src].hit, nb || 0, 'the cache hit should be correct');
+    strictEqual(cacheEntry(src).get('hits'), nb || 0, 'the cache hit count should be correct');
   }
 }
 function assertNotInCache(src, msg) {
-  ok(!CACHE[src], msg || 'there should not be a cache entry for `' + src + '`');
+  ok(!cacheEntry(src), msg || 'there should not be a cache entry for `' + src + '`');
 }
 function imgTag(src, attr, id, cssClass) {
   var attrs = '';
   for (var k in attr || {}) {
-    attrs += ' ' + k.toLowerCase() + '="' + escapeAttr(attr[k]) + '"';
+    attrs += ' ' + k.toLowerCase() + '="' + helpers.escapeAttr(attr[k]) + '"';
   }
   if (id) {
-    attrs += ' id="' + NAMESPACE + id + '"';
+    attrs += ' id="-ember-image-cache-' + id + '-"';
   }
   if (cssClass) {
     attrs += ' class="' + cssClass + '"';
   }
-  return '<img' + (src ? ' src="' + escapeAttr(src) + '"' : '') + attrs + '>';
+  return '<img' + (src ? ' src="' + helpers.escapeAttr(src) + '"' : '') + attrs + '>';
 }
 
 /**********************************************************
@@ -67,9 +81,9 @@ function imgTag(src, attr, id, cssClass) {
 test('it renders a placeholder when the image is in cache and replaces it with a clone of the cache', function () {
   Ember.run(function () {
     assertNotInCache(SRC);
-    appendImg(SRC, {alt: 'test'});
+    appendImg('{{img view.src alt=view.alt}}', {src: SRC, alt: 'test'});
     assertInCache(SRC, 0);
-    appendImg(SRC, {title: 'test'});
+    appendImg('{{img view.src title=view.title}}', {src: SRC, title: 'test'});
     assertInCache(SRC, 0);
     assertQueueLength(2);
     strictEqual(
@@ -83,7 +97,7 @@ test('it renders a placeholder when the image is in cache and replaces it with a
   assertInCache(SRC, 2);
   strictEqual(
     getHtml(),
-    imgTag(SRC, {alt: 'test'}, null, LOADING_CLASS) + imgTag(SRC, {title: 'test'}, null, LOADING_CLASS),
+    imgTag(SRC, {alt: 'test'}, null, manager.get('loadingClass')) + imgTag(SRC, {title: 'test'}, null, manager.get('loadingClass')),
     'the html should now contain original source without `id`'
   );
 });
@@ -125,7 +139,7 @@ test('it keeps the id property if one defined', function () {
     getHtml(),
     imgTag(SRC_DATA, {id: 'test1'}) +
     imgTag(SRC_LOCAL, {id: 'test2'}) +
-    imgTag(SRC, {id: 'test3'}, null, LOADING_CLASS),
+    imgTag(SRC, {id: 'test3'}, null, manager.get('loadingClass')),
     'the html should now contain images with replaced `id`'
   );
 });
@@ -147,7 +161,7 @@ test('it keeps user-defined attributes', function () {
   strictEqual(
     getHtml(),
     imgTag(SRC_DATA, {'data-one': 'one'}) + imgTag(SRC_LOCAL, {'randomAttr': 'random'}) +
-    imgTag(SRC, {'dummy': 'dummy'}, null, LOADING_CLASS),
+    imgTag(SRC, {'dummy': 'dummy'}, null, manager.get('loadingClass')),
     'the html should still contain images with correct attributes'
   );
 });
