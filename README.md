@@ -1,5 +1,7 @@
 # ember-img-cache [![Build Status](https://travis-ci.org/huafu/ember-img-cache.svg)](https://travis-ci.org/huafu/ember-img-cache)
 
+# DEPRECATED, use [ember-img-manager](https://github.com/huafu/ember-img-manager) instead!
+
 Never saw some images already loaded by your Ember app re-loading again? Well this addon includes
 an `{{img}}` Handlebars helper that will clone images and keep a cache of the nodes, re-cloning the
 clone any time later that the application needs that image again, resulting in traffic cut-down
