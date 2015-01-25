@@ -1,6 +1,0 @@
-<div>
-  {{#each}}
-    <img {{bind-attr src=validUrl}} onload="IMG.incrementProperty('imgLoad');" onerror="IMG.incrementProperty('imgError');">
-    <img {{bind-attr src=invalidUrl}} onload="IMG.incrementProperty('imgLoad');" onerror="IMG.incrementProperty('imgError');">
-  {{/each}}
-</div>

@@ -1,21 +1,3 @@
 <h2 id='title'>Welcome to Ember.js</h2>
-<div>
-  <h4>status</h4>
-  <ul>
-    {{#each eicManager.allCacheEntries}}
-      <li>
-        <div><b>src: </b>{{src}}</div>
-        <div><b>resolved src: </b>{{fullSrc}}</div>
-        <div><b>hits: </b>{{hits}}</div>
-        <div><b>loading: </b>{{isLoading}}</div>
-        <div><b>error: </b>{{isError}}</div>
-      </li>
-    {{/each}}
-  </ul>
-</div>
-<div>
-  {{link-to 'With image caching' 'with-cache'}}
-  {{link-to 'Without image caching' 'without-cache'}}
-</div>
-<hr/>
+
 {{outlet}}
