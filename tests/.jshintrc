@@ -44,9 +44,7 @@
     "andThen",
     "currentURL",
     "currentPath",
-    "currentRouteName",
-
-    "lookup"
+    "currentRouteName"
   ],
   "node": false,
   "browser": false,

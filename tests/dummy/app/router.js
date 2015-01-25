@@ -6,6 +6,8 @@ var Router = Ember.Router.extend({
 });
 
 Router.map(function() {
+  this.route('without-cache');
+  this.route('with-cache');
 });
 
 export default Router;

@@ -1,0 +1,6 @@
+<div>
+  {{#each}}
+    {{img validUrl onload="IMG.incrementProperty('imgLoad');" onerror="IMG.incrementProperty('imgError');"}}
+    {{img invalidUrl onload="IMG.incrementProperty('imgLoad');" onerror="IMG.incrementProperty('imgError');"}}
+  {{/each}}
+</div>

@@ -1,8 +1,7 @@
-import Ember from 'ember';
-
 var CLASS_SPLIT_REGEXP = /\s+/g;
 var ATTRIBUTE_REPLACE_MAP = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'};
-
+var emptyFunction = function () {
+};
 
 var helpers = {
   /**
@@ -160,7 +159,7 @@ var helpers = {
    */
   makeTriggerError: function (node) {
     if (!node.dispatchEvent) {
-      return Ember.K;
+      return emptyFunction;
     }
     return function () {
       var event = new Event('error', {bubbles: false, cancelable: false});
