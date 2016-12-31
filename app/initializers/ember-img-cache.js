@@ -5,5 +5,5 @@ Ember.Handlebars.registerBoundHelper('img', img);
 
 export default {
   name:       'ember-img-cache',
-  initialize: Ember.K
+  initialize() {}
 };
